@@ -1,4 +1,5 @@
-
+import csv
+import random
 #Constantes
 timex = 0.25
 timey = 0.25
@@ -29,6 +30,7 @@ matTime = [[[35.5,50.1,64.8],
 
 
 
+
 #Posiciones sin limite de peso
 #A[n][0]
 
@@ -38,19 +40,66 @@ matTime = [[[35.5,50.1,64.8],
 #Posiciones con restriccion de 100
 #A[n][2]
 
-
-
-##Sort highest to lowest
-def sort(x):
-    for j in range(len(x)-1):
-        for i in range(len(x) - 1):
-            if x[i] < x[i + 1]:
-                x[i],x[i + 1] = x[i + 1], x[i]
-    print (x)
-
+##Clase que maneja los archivos csv
+class FileController:
+    def __init__(self):
+        self.name = "controler"
+        self.rackLogic = Rack()
+    ##Funcion para leer la matriz desde el archivo csv
+    def init(self):
+        
+        matriz = []
+        with open('Skus.csv') as File:
+            reader = csv.reader(File, delimiter=';', quotechar=';',
+                                quoting=csv.QUOTE_MINIMAL)
+            for row in reader:
+                if len(row) != 0:
+                    matriz += [row]
+                    
+            for i in range(len(matriz)):
+                for j in range(len(matriz[0])):
+                    if self.isFloat(matriz[i][j]):
+                        matriz[i][j] = float(matriz[i][j])
+            self.printFile(matriz)
+            return matriz
+    def printFile(self,mat):
+        for i in mat:
+            print(i)
+    def isFloat(self,word):
+        nums = "1234567890. "
+        for i in word:
+            if i not in nums:
+                return False
+        return True
+    def makeListSku(self,mat):
+        llistSku = []
+        for i in range(len(mat)):
+            s = Sku(mat[i][0],mat[i][1],mat[i][2],mat[i][3])
+            llistSku += [s]
+        self.rackLogic.sortListSku(llistSku)
+        ##MAKE TUPLA CON TRES LISTAS CON LOS TRES RANGOS DE PESO
+        ##LUEGO DISTRIBUIR CADA LISTA DE MANERA ALEATORIA
+        return llistSku
+    def printListSkuName(self,l):
+        print(" SKU NAMES ")
+        for i in l:
+            print(i.name)
+    def printListSkuRotation(self,l):
+        print(" SKU ROTATION ")
+        for i in l:
+            print(i.rotation)
+    def printListSkuWeight(self,l):
+        print(" SKU WEIGHT ")
+        for i in l:
+            print(i.weight)
+    def printListSkuPopularity(self,l):
+        print(" SKU POPULARITY ")
+        for i in l:
+            print(i.popularity)
+        
 
 class Sku:
-    def __init__(self,name,popularity = 0,rotation = 0,weight = 0):
+    def __init__(self,name = "",rotation = 0,weight = 0,popularity = 0):
         self.name = name
         self.popularity = popularity
         self.rotation = rotation
@@ -66,7 +115,7 @@ class Rack:
         ##Contador para cada fila del Rack
         self.y1Fill = 0
         self.y2Fill = 0
-        self.y3.Fill = 0
+        self.y3Fill = 0
         
         self.zFill = 0
         self.initRack()
@@ -81,49 +130,123 @@ class Rack:
     def addSku(self,Sku):
         if not self.isFull():
             ##Condicionales de peso
-            if Sku.wight > 180 and not self.isFullRow(0):
+            if Sku.weight > 180 and not self.isFullRow(0):
                 
                 self.rack[self.y1Fill][0] = Sku
                 self.y1Fill += 1
-            elif Sku.weight <= 180 and not self.isFullRow(1):
-                self.rack[self.y2Fill][1] = Sku
-                self.y2Fill += 1
                 
             elif Sku.weight <= 100 and not self.isFullRow(2):
                 self.rack[self.y3Fill][2] = Sku
                 self.y3Fill += 1
                 
-            elif Sku.weight <= 180 and not self.isFullRow(0):
-                self.rack[self.y2Fill][0] = Sku
-                self.y1Fill += 1
-
+            elif Sku.weight <= 180 and not self.isFullRow(1):
+                self.rack[self.y2Fill][1] = Sku
+                self.y2Fill += 1
+                
             elif Sku.weight <= 100 and not self.isFullRow(1):
                 self.rack[self.y2Fill][1] = Sku
                 self.y2Fill += 1
+                
+            elif Sku.weight <= 180 and not self.isFullRow(0):
+                self.rack[self.y1Fill][0] = Sku
+                self.y1Fill += 1
+
+
+    def addNum(self,num):
+        if not self.isFull():
+            ##Condicionales de peso
+            if num > 180 and not self.isFullRow(0):
+                
+                self.rack[self.y1Fill][0] = num
+                self.y1Fill += 1
+
+            elif num <= 100 and not self.isFullRow(2):
+                self.rack[self.y3Fill][2] = num
+                self.y3Fill += 1
+                
+            elif num <= 180 and not self.isFullRow(1):
+                self.rack[self.y2Fill][1] = num
+                self.y2Fill += 1
+                
+            elif num <= 100 and not self.isFullRow(1):
+                self.rack[self.y2Fill][1] = num
+                self.y2Fill += 1
+
+                
+            elif num <= 180 and not self.isFullRow(0):
+                self.rack[self.y1Fill][0] = num
+                self.y1Fill += 1
+
+    ##Sort highest to lowest
+    def sortListSku(self,x):
+        for j in range(len(x)-1):
+            for i in range(len(x) - 1):
+                if x[i].popularity < x[i + 1].popularity:
+                    x[i],x[i + 1] = x[i + 1], x[i]
+                
+        return x
     
-            if self.yFill > 4:
-                self.yFill = 0
-                self.zFill += 1
+    def sortRack(self):
+        sortRack = []
+        l1 = []
+        l2 = []
+        l3 = []
+        for i in range(5):
+            l1 += [self.rack[i][0]]
+            l2 += [self.rack[i][1]]
+            l3 += [self.rack[i][2]]
+
+        l1 = self.sortListSku(l1)
+        l2 = self.sortListSku(l2)
+        l3 = self.sortListSku(l3)
+
+        for j in range(5):
+            row = []
+            row += [l1[j]]
+            row += [l2[j]]
+            row += [l3[j]]
+            sortRack += [row]
+        
+        self.rack = sortRack
+
         
         
     def initRack(self):
         for i in range(5):
             l = []
             for j in range(3):
-                l+=[0]
+                s = Sku()
+                l+=[s]
             self.rack += [l]
     def showRack(self):
+        mat = []
         for i in self.rack:
-            print(i)
-    def isFull(self):
-        for i in self.rack:
+            row = []
             for j in i:
-                if j==0:
+                row += [j.popularity]
+            mat += [row]
+        for k in mat:
+            print(k)
+            
+    def showRackNAMES(self):
+        mat = []
+        for i in self.rack:
+            row = []
+            for j in i:
+                row += [j.name]
+            mat += [row]
+        for k in mat:
+            print(k)
+                
+    def isFull(self):
+        for i in self.rack: 
+            for j in i:
+                if j.popularity == 0:
                     return False
         return True
     def isFullRow(self,row):
         for i in self.rack:
-            if i[row] == 0:
+            if i[row].popularity == 0:
                 return False
         return True
 
@@ -148,14 +271,52 @@ class TimeController:
 class Population:
     def __init__(self):
         self.population = []
+        self.timeControll = TimeController()
+        self.rackA = Rack("A")
+        self.rackB = Rack("B")
+        self.rackC = Rack("C")
+        self.rackD = Rack("D")
     def addRack(self,Rack):
         self.population += [Rack]
+    def finTime(self):
+        t = self.findSku()
+        time = self.timeControll.CalculateTime(t[0],t[1],t[2])
     def findSku(self,name):
         for i in self.population:
             for j in i:
                 for k in j:
                     if k.name == name:
-                        return (i,j,k)
+                        slot = "ABCD"
+                        return (slot[i],j,k)
+    def printRacks(self):
+        print(" RACK A ")
+        self.rackA.showRackNAMES()
+        print(" RACK B ")
+        self.rackB.showRackNAMES()
+        print(" RACK C ")
+        self.rackC.showRackNAMES()
+        print(" RACK D ")
+        self.rackD.showRackNAMES()
+                    
+    def makePopulation(self,l):
+        listRacks = [self.rackA,self.rackB,self.rackC,self.rackD]
+        for j in range(4):
+            
+            for i in range(15):
+                randSKU =  random.randint(0,len(l)-1)
+                if randSKU == 0:
+                    listRacks[j].addSku(l[randSKU])
+                    l = l[1::]
+                elif randSKU == len(l)-1:
+                    listRacks[j].addSku(l[randSKU])
+                    l = l[0:len(l)-1]
+                else:
+                    listRacks[j].addSku(l[randSKU])
+                    l = l[0:randSKU] + l[randSKU+1::]
+        self.printRacks()
+        
+                
+        
     
         
         
@@ -170,6 +331,40 @@ class Fitness():
         fitness = 0
         for i in Rack.rack:
             fitness += i.popularidad
+
+
+
+
+
+
+
+
+
+##Productos
+
+fileC = FileController()
+matData = fileC.init()
+
+listSkus = fileC.makeListSku(matData)
+
+population = Population()
+
+population.makePopulation(listSkus)
+
+
+
+            
+
+
+
+#l = [1,2,3,4,5]
+#l[1::]
+#[2, 3, 4, 5]
+#l[0:len(l)-1]
+#[1, 2, 3, 4]
+#l[0:1] + l[2::]
+#[1, 3, 4, 5]
+
         
             
         
