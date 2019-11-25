@@ -717,11 +717,32 @@ while not hecho:
     label1 = myfont.render(str(timeVar2), 1, SILVER)
     label2 = myfont.render("Set Generation",1,BLUE)
     labelTime = myfont.render("  Time: " + str(timed) ,1,YELLOW)
+    labelone = myfont.render("1", 1, WHITE)
+    labeltwo = myfont.render("2", 1, WHITE)
+    labelthree = myfont.render("3", 1, WHITE)
+    
 
     window.blit(label, (525, 20))
     window.blit(label1, (700, 20))
     window.blit(label2, (535, 330))
     window.blit(labelTime, (525, 135))
+
+    
+    window.blit(labelone, (350, 145))
+    window.blit(labeltwo, (350, 100))
+    window.blit(labelthree, (350, 55))
+    
+    window.blit(labelone, (350, 305))
+    window.blit(labeltwo, (350, 265))
+    window.blit(labelthree, (350, 220))
+    
+    window.blit(labelone, (350, 460))
+    window.blit(labeltwo, (350, 420))
+    window.blit(labelthree, (350, 380))
+
+    window.blit(labelone, (350, 620))
+    window.blit(labeltwo, (350, 580))
+    window.blit(labelthree, (350, 540))
     
     
     # Establecemos el fondo de pantalla.
