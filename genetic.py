@@ -1,5 +1,9 @@
 import csv
 import random
+import pygame
+
+
+##VARIABLES CONSTANTES
 
 ##Matriz para conseguir los tiempos de cada movimiento
 global matTime
@@ -24,7 +28,6 @@ matTime = [[[35.5,50.1,64.8],
             [133.9,148.5,163.2],
             [142.7,157.3,172.0]],
            ]
-
 
 
 
@@ -289,6 +292,7 @@ class Population:
         self.population = []
         self.timeControll = TimeController()
         self.fit = Fitness()
+        self.generation = 0
         self.rackA = Rack("A")
         self.rackB = Rack("B")
         self.rackC = Rack("C")
@@ -362,6 +366,13 @@ class Population:
             return False
         else:
             return True
+    def getTimeSKU(self,nameSKU):
+        print("\n GENERATION " + str(self.generation))
+        local = self.findSku(nameSKU)
+        print(local)
+        time = self.timeControll.calculateTime(local)
+        print("Time: " + str(time))
+        return time
         
     def getGeneration(self,generation):
         for i in range(generation):
@@ -415,78 +426,376 @@ class Population:
         self.rackC = nr3
         self.rackD = nr4
         self.population = [nr1,nr2,nr3,nr4]
+        self.generation += 1
+    def getPopGraphs(self):
+        mat = []
+        mat2 = [[0,0,"D",0,0]]
+        for i in self.population:
+            for j in range(3):
+                row = []
+                for k in range(5):
+                    row += [i.rack[k][j].name]
+                mat += [row]
+            
+
+        mat = mat[::-1]
+        cont = 0
+        namesR = "CBA"
+        contnames = 0
+        for m in mat:
+            mat2 += [m[::-1]]
+            cont += 1
+            if cont == 3:
+                if contnames < 3:
+                    mat2 += [[0,0,namesR[contnames],0,0]]
+                else:
+                    mat2 += [[0,0,0,0,0]]
+                cont = 0
+                contnames += 1
+        #print("MAT GRAPHIC")
+        #for n in mat2:
+            #print(n)
+            
+        return mat2
+    
 
 
 
-##Productos
-
+##INICIALIZANDO PRODUCTOS DE ARCHIVO CSV
 fileC = FileController()
 matData = fileC.init()
 listSkus = fileC.makeListSku(matData)
 
-
-
+#CREANDO POBLACION
 population = Population()
 population.makePopulation(listSkus[0])
 population.makePopulation(listSkus[1])
 population.makePopulation(listSkus[2])
 
 
-##PRUEBA ANTES DE APLICAR CRUCE
-
-find = "SKU 23" #SLOT A BUSCAR
-print("\nGENERATION 0")
-print("\nFIND: " + find)
-local = population.findSku(find)
-print(local)
-print("time: " + str(population.timeControll.calculateTime(local)))
-
-#fit = Fitness()
-
-##MIDIENDO LOS FITNESS DE CADA RACK5
-#print("Fitness")
-#print(fit.calculateFitness(population.population[0]))
-#print(fit.calculateFitness(population.population[1]))
-#print(fit.calculateFitness(population.population[2]))
-#print(fit.calculateFitness(population.population[3]))
-
-
-#DESPUES DE GENERACIONES
-
-i = 2 #NUMERO DE GENERACION A BUSCAR
-population.getGeneration(i)
-
-print("\n -RACKS- ")
+##PRUEBA INICIAL
 population.printRacks()
-
-print("\nGENERATION " + str(i))
-print("\nFIND: " + find)
-local = population.findSku(find)
-print(local)
-print("time: " + str(population.timeControll.calculateTime(local)))
+population.getTimeSKU("SKU 44") #SLOT A BUSCAR
 
 
+##PRUEBA DESPUES DE GENERACIONES
 
+#population.getGeneration(2) ##NUMERO DE GENERACION A BUSCAR
 
+#population.printRacks()
+#population.getTimeSKU("SKU 44")
 
-
-
+#population.getPopGraphs()
 
 
 
 
 
+## PYGAME FOR GRAPHICS
+
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+BLUE = ( 0, 255, 255)
+RED = (255, 0, 0)
+SILVER = (192,192,192)
+MAROON = (128,0,0)
+AQUA = (0,255,255) 
+YELLOW = (255,255,0)
+
+LARGO  = 55
+ALTO = 30
+MARGEN = 10
+
+##Clase Mouse
+
+class Cursor(pygame.Rect):
+    def __init__(self):
+        pygame.Rect.__init__(self,0,0,1,1)
+    def update(self):
+        self.left,self.top = pygame.mouse.get_pos()
+        
+
+#Clase Boton
+        
+class Button(pygame.sprite.Sprite):
+    def __init__(self,image1,image2,x=100,y=100):
+        self.image_n = image1
+        self.image_s = image2
+        self.image_a = self.image_n
+        self.rect = self.image_a.get_rect()
+        self.rect.left,self.rect.top = (x,y)
+    def update(self,window,cursor):
+        
+        if cursor.colliderect(self.rect):
+            self.image_a = self.image_s
+        else:
+            self.image_a = self.image_n
+
+        window.blit(self.image_a , self.rect)
+
+        
+
+global grid
+grid = population.getPopGraphs()
+
+pygame.init()
+window = pygame.display.set_mode([760, 670])
 
 
 
 
-#l = [1,2,3,4,5]
-#l[1::]
-#[2, 3, 4, 5]
-#l[0:len(l)-1]
-#[1, 2, 3, 4]
-#l[0:1] + l[2::]
-#[1, 3, 4, 5]
+COLOR_INACTIVE = pygame.Color('lightskyblue3')
+COLOR_ACTIVE = pygame.Color('dodgerblue2')
+FONT = pygame.font.Font(None, 32)
+
+#Clase de texbox para entrada de texto
+
+
+class InputBox:
+
+    def __init__(self, x, y, w, h, text=""):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = COLOR_INACTIVE
+        self.text = text
+        self.txt_surface = FONT.render(text, True, self.color)
+        self.active = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # If the user clicked on the input_box rect.
+            if self.rect.collidepoint(event.pos):
+                # Toggle the active variable.
+                self.active = not self.active
+                
+            else:
+                self.active = False
+            # Change the current color of the input box.
+            self.color = COLOR_ACTIVE if self.active else COLOR_INACTIVE
+        if event.type == pygame.KEYDOWN:
+        
+            if self.active:
+                if event.key == pygame.K_RETURN:
+                    global timeVar
+                    global timeVar2
+                    
+                    if self.verifyIN(self.text):
+                        timeVar2 = int(self.text)
+                        
+                
+                    self.text = ''
+                    
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                # Re-render the text.
+                self.txt_surface = FONT.render(self.text, True, self.color)
+    def verifyIN(self , a):
+        numbers = "1234567890"
+        for i in a:
+            if i not in numbers:
+                return False
+        return True
+
+    def update(self):
+        # Resize the box if the text is too long.
+        width = max(200, self.txt_surface.get_width()+10)
+        self.rect.w = width
+
+    def draw(self, screen):
+        # Blit the text.
+        screen.blit(self.txt_surface, (self.rect.x+5, self.rect.y+5))
+        # Blit the rect.
+        pygame.draw.rect(screen, self.color, self.rect, 2)
+ 
+# Establecemos el título de la pantalla.
+pygame.display.set_caption("Life")
+ 
+# Iteramos hasta que el usuario pulse el botón de salir.
+hecho = False
+ 
+# Lo usamos para establecer cuán rápido de refresca la pantalla.
+clock = pygame.time.Clock()
+pygame.time.set_timer(pygame.USEREVENT, 1000) 
+entry1 = InputBox(500, 350, 10, 32)
+
+# -------- Bucle Principal del Programa-----------
+
+# Fuente del texto + label
+myfont = pygame.font.SysFont("monospace", 15)
+myfont2 = pygame.font.SysFont(None, 15)
+
+
+
+#variable de tiempo luego debe ser cambiada por el input
+global timeVar
+global timeVar2
+timeVar = 0
+timeVar2 = 0
+
+# Imagenes
+
+play = pygame.image.load("images/play.png")
+play2 = pygame.image.load("images/play2.png")
+
+#monta carga
+imageM = pygame.image.load("images/image.png")
+
+x = 600
+y = 400
+a = 0
+b = 0
+ii = 0 
+jj = 0
+
+# Botones
+
+buttonPlay = Button(play,play2,570,240)
+
+cursor1 = Cursor()
+timed = 0
+savedFlag = False
+timeSave = 1
+contX = 200
+contY = 400
+flagX = False
+flagY = False
+flagZ = False
+keys = ["A","B","C","D"]
+
+while not hecho:
+  
+
+    for event in pygame.event.get():
+        
+        entry1.handle_event(event)
+        
+          
+        if event.type == pygame.QUIT: 
+            hecho = True
+            
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            
+            #PLAY BUTTON
+            if cursor1.colliderect(buttonPlay.rect):
+                population.getGeneration(timeVar2)
+                timeVar += timeVar2
+                timeVar2 = 0
+
+             #El usuario presiona el ratón. Obtiene su posición.
+            pos = pygame.mouse.get_pos()
+            # Cambia las coordenadas x/y de la pantalla por coordenadas reticulares
+            columna = pos[0] // (LARGO + MARGEN) 
+            fila = pos[1] // (ALTO + MARGEN)
+            ii = columna
+            jj = fila
+            
+            # EN ESTE PUNTO SE PUEDEN UTILIZAR LAS FILAS Y COLUMNAS
+            # PARA LA LOGICA
+            rowsNot = [0,4,8,12,16]
+            if columna < len(grid[0]) and fila < len(grid) and fila not in rowsNot:
+                
+                a,b = pygame.mouse.get_pos()
+                flagX = not flagX
+                
+                print(a,b)
+                            
+        
+    cursor1.update()
+    #Animacion del texbox
+
+    
+    entry1.update()
+    window.fill(BLACK)
+    entry1.draw(window)
+    
+
+    buttonPlay.update(window,cursor1)
+ 
+    label = myfont.render("  Generation: " +  str(timeVar), 1, SILVER)
+    label1 = myfont.render(str(timeVar2), 1, SILVER)
+    label2 = myfont.render("Set Generation",1,BLUE)
+    labelTime = myfont.render("  Time: " + str(timed) ,1,YELLOW)
+
+    window.blit(label, (525, 20))
+    window.blit(label1, (700, 20))
+    window.blit(label2, (535, 330))
+    window.blit(labelTime, (525, 135))
+    
+    
+    # Establecemos el fondo de pantalla.
+
+ 
+    # Dibujamos la retícula
+    for fila in range(len(grid)):
+        for columna in range(len(grid[0])):
+            color = BLACK
+            #image = lot
+            if grid[fila][columna] == 0:
+                color = BLACK
+            elif grid[fila][columna]in keys:
+                color = (116,245,3)
+            else:
+                color = BLUE
+                
+            pygame.draw.rect(window,
+                             color,
+                             [(MARGEN+LARGO) * columna + MARGEN,
+                             (MARGEN+ALTO) * fila + MARGEN,
+                              LARGO,
+                             ALTO])
+            
+            if grid[fila][columna] != 0:
+                label3 = myfont2.render(grid[fila][columna],1,BLACK)
+                window.blit(label3, ((MARGEN+LARGO) * columna + MARGEN +5, (MARGEN+ALTO) * fila + MARGEN + 10))
+                 
+    
+    window.blit(imageM,(x,y))
+    if flagX and contX!= 0:
+        x -= 5
+        contX -= 5
+        if contX == 0:
+            flagX = not flagX
+            contX = 200
+            flagY = not flagY
+    if flagY and contY > b:
+        y -= 5
+        if y <= b:
+            flagY = not flagY
+            b = 0
+            contY = 400
+            flagZ = not flagZ
+            
+    if flagY and contY < b:
+        y += 5
+        if y >= b:
+            flagY = not flagY
+            b = 0
+            contY = 400
+            flagZ = not flagZ
+    if flagZ and a < x:
+        x -= 5
+        if x < a+5:
+            flagZ = not flagZ
+            a = 0
+            x = 600
+            y = 400
+            print("SKU ---> " + grid[jj][ii])
+            timed = population.getTimeSKU(grid[jj][ii])
+            print("TIME ---->" + str(timed))
+            
+            
+    grid = population.getPopGraphs()
+     
+    # Limitamos a 60 fotogramas por segundo.
+    clock.tick(60)
+ 
+    # Actualizar pantalla
+    pygame.display.flip()
+
+pygame.quit()
+
 
         
             
